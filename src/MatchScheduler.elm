@@ -1,6 +1,7 @@
 module MatchScheduler exposing (..)
 
---DEBUG ISSUE WITH SOMETIMES EMPTY MATCHES
+--DEBUG ISSUE WITH SOMETIMES 2 TEAM ALLIANCES(surrogate needed)
+--DEBUG SOME MORE ISSUES WITH DISTRIBUTIONS, same team against each other on alliances
 
 -- I don't like the amount of imports needed, maybe reorganize dependencies at some point
 import Random exposing (Generator)
@@ -31,9 +32,6 @@ split i list =
 createSchedule : List Int -> List Match
 createSchedule matchList = 
   map createMatch (split 6 matchList)
-
-
-
 
 -- need to set fancier set bounds on this, random.list.choices might be helpful
 teamScheduler : Int -> Set Int -> Generator (List Int)

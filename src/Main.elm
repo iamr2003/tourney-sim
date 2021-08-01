@@ -9,6 +9,7 @@ import Random exposing (generate,Generator)
 import Set exposing (Set,empty,toList)
 import Random.Set exposing(set)
 import MatchScheduler exposing (..)
+import Team exposing (..)
 
 -- MAIN
 
