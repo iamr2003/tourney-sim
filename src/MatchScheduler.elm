@@ -8,6 +8,7 @@ import Random exposing (Generator)
 import List exposing (length,repeat,take,drop,map,foldr)
 import Random.List exposing(shuffle)
 import Set exposing (Set,size,toList,fromList)
+import Utils exposing (split)
 
 type alias Match =
   { red : Set Int
@@ -21,12 +22,6 @@ type alias Match =
 --  let matchesPerTeam = (matches*6) // (size teamList) 
 --  in
 
-
-split : Int -> List a -> List (List a)
-split i list =
-  case take i list of
-    [] -> []
-    listHead -> listHead :: split i (drop i list)
 
 --generator and post thing separated methods
 createSchedule : List Int -> List Match

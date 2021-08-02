@@ -26,7 +26,7 @@ main =
 
 type alias Model = 
   { page : Int 
-  , teams : Set Int --maybe come up with an eventual bounding type
+  , teamNumbers : Set Int --maybe come up with an eventual bounding type
   , schedule : List Match
   }
 
@@ -34,7 +34,7 @@ type alias Model =
 init : () -> (Model, Cmd Msg)
 init _ =
   ({ page = 0
-   , teams = Set.empty
+   , teamNumbers = Set.empty
    , schedule = []
    }
    , Cmd.none)
@@ -50,13 +50,14 @@ type Msg
   | MakeList (Set Int)
   | NewSchedule
   | MakeSchedule (List Int)
+  | MakeTeams
 
-randomTeam : Generator Int
-randomTeam =
+randomTeamNumber : Generator Int
+randomTeamNumber =
   (Random.int 1 9999)
 
-generateTeams : Int -> Generator(Set Int)
-generateTeams n =
+generateTeamNumbers : Int -> Generator(Set Int)
+generateTeamNumbers n =
   set n randomTeam
 
 
@@ -75,10 +76,10 @@ update msg model =
        )
     NewList ->
       (model
-      , generate MakeList (generateTeams 30)
+      , generate MakeList (generateTeamNumbers 30)
       )
     MakeList list ->
-      ( {model | teams = list }
+      ( {model | teamNumbers = list }
         , Cmd.none
         )
     NewSchedule ->
@@ -89,6 +90,7 @@ update msg model =
       ( {model | schedule = (createSchedule scheduled)}
         , Cmd.none
         )
+    MakeTeams List (Generator )
 
 
 --SUBSCRIPTIONS
