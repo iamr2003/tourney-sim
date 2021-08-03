@@ -2,7 +2,7 @@ module Team exposing (..)
 
 import Random exposing (Generator,constant,pair,map)
 import Random.Float exposing (normal)
-import Dict exposing (Dict,map)
+import Dict exposing (Dict,map,foldl,toList)
 import Utils exposing (split)
 import Tuple exposing (pair)
 import List exposing (map2)
@@ -13,7 +13,7 @@ import List exposing (map2)
 --we can use this fancy type overloading to keep states encoded
 type TeamAtrribute 
 	--min max pair, useful to bundle in pair for generation
-  = AttributeRange Tuple.pair(Float, Float)
+  = AttributeRange (Float, Float)
   | AttributeValue Float --this might not be helpful here
 
 generateAttribute : Generator (Float , Float) -> Generator TeamAtrribute
@@ -29,11 +29,9 @@ generateResult attr =
 				mean = (bounds.first+bounds.second)/2
 				stdev = (bounds.second-mean)/3 --99.7% of distribution is between 3 stdevs of origin
 			in
-			(Random.Float.normal mean stdev)
+				(Random.Float.normal mean stdev)
 		AttributeValue val -> --safety, this should never be called in usage
 			Random.constant val
-
-
 
 coerceAttribute : TeamAttribute -> Float
 coerceAttribute attr =
@@ -49,15 +47,25 @@ type alias Team =
 	,	attrs : Dict String TeamAtrribute
 	}
 
+
+--written with the help of joelq on the elm slack
+--combineDict : Dict String (Generator a) -> Generator (Dict String a)
+--combineDict dict =
+--    Dict.foldl
+--        (\key valueGen comboGen ->
+--            Random.map2 (Dict.insert key) valueGen comboGen
+--        )
+--        (Random.constant Dict.empty)
+--        dict
 --need to think more about how to form this
 generateAttributes : Dict String (Generator TeamAtrribute) -> Generator( Dict String TeamAtrribute)
 generateAttributes generator_dict =
-	Random.map
-		(\generator -> 
-			Dict.map
-				(\k v -> generator)
-				generator_dict
-			)
+    Dict.foldl
+        (\key valueGen comboGen ->
+            Random.map2 (Dict.insert key) valueGen comboGen
+        )
+        (Random.constant Dict.empty)
+        generator_dict
 
 --eventually think about changing random gen-> create paradigm
 generateTeam : Int -> String -> Generator (Dict String TeamAtrribute) -> Generator Team
@@ -65,16 +73,22 @@ generateTeam num team_name attr_generators =
 	Random.map
 		(\x -> Team num team_name x)
 		attr_generators
---style guide notes at some point
 
---createTeam : Int -> String ->  List String -> List Tuple.pair(Float,Float) -> Team
---createTeam num team_name attr_names attr_min_maxes =
---	{ number : num
---	, name : team_name
---	, attrs : 
---		Dict.fromList
---			map2 
---				(\key val -> (key,val)) 
---				attr_names 
---				(map attr_min_maxes AttributeRange)
---	}
+--hyper specific implementation, but fine for now
+generateTeams : Set Int -> Generator (Dict String TeamAtrribute) -> Generator (Dict Int Team)
+generateTeams teamSet attr_generators =
+	let
+		teamList = Dict.toList teamSet
+	in
+		Random.map
+			Dict.fromList
+			List.foldl --List (Generator Team) -> Generator (List Team)
+				(\n comboGen ->
+					Random.map 
+						(List.append comboGen) 
+						Random.pair
+							n
+							(generateTeam n ("Team" ++ String.fromInt(n)) attr_generators)
+				)
+				(Random.constant List.empty)
+				teamList
