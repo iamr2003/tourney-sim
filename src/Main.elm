@@ -5,11 +5,51 @@ import Browser
 import Html exposing (Html, button, div, text,li)
 import Html.Events exposing (onClick)
 import List exposing (map,foldr)
-import Random exposing (generate,Generator)
+import Random exposing (generate,Generator,pair)
 import Set exposing (Set,empty,toList)
+import Dict exposing(Dict,empty,fromList,map)
 import Random.Set exposing(set)
 import MatchScheduler exposing (..)
 import Team exposing (..)
+import Scoring exposing (..)
+
+--PARAMS
+
+--might make this more tree structure at some point(auto, Dict of Dict, some other structure), and better wrappers
+--based on python simulator
+--weekOneRanges = {
+--  'auto':{'avgCrossLine':[0,1],'avgLowerBallsScored':[0,3],'avgOuterBallsScored':[0,3],'avgInnerBallsScored':[0,2],'avgMissedBalls':[0,3]},
+--  'teleop':{'avgLowerBallsScored':[0,3],'avgOuterBallsScored':[0,3],'avgInnerBallsScored':[0,2],'avgMissedBalls':[0,3],'avgControlPanelRot':[0,1],'avgControlPanelPos':[0,1]},
+--  'endgame':{'avgClimbState':[0,2],'avgBalanced':[0,1]}
+--  #dont worry about other subjective stats yet 
+--  }
+palmettoDist : Generator (Dict String TeamAtrribute)
+palmettoDist =
+  generateAttributes
+    Dict.map
+      (\key val -> generateAttribute val)
+    --filled in only some things, can come up with full list later
+      Dict.fromList
+        [ ("autoCrossLine",Random.pair 0 1)
+        , ("autoBalls",Random.pair 0 6)
+        , ("teleopBalls",Random.pair 0 9)
+        , ("climbState", Random.pair 0 2) -- again, change into actual boolean/int at some point, or create rectification in rules
+        , ("climbBalance", Random pair 0 1)
+        ]
+
+--these aren't the real rules, also again need to support more complex types
+powerUpRules : Dict String Float
+powerUpRules =
+  Dict.fromList
+      [ ("autoCrossLine",5)
+      , ("autoBalls",4)
+      , ("teleopBalls",2)
+      , ("climbState", 15)
+      , ("climbBalance", 15)
+      ]
+
+
+
 
 -- MAIN
 
@@ -29,7 +69,9 @@ type alias Model =
   , teamNumbers : Set Int --maybe come up with an eventual bounding type
   , schedule : List Match
   , teams : Dict Int Team
+  , attr_generators : Generator (Dict String TeamAtrribute)
   }
+
 
 
 init : () -> (Model, Cmd Msg)
@@ -37,6 +79,8 @@ init _ =
   ({ page = 0
    , teamNumbers = Set.empty
    , schedule = []
+   , teams = Dict.empty
+   , attr_generators = palmettoDist
    }
    , Cmd.none)
 
@@ -61,8 +105,6 @@ randomTeamNumber =
 generateTeamNumbers : Int -> Generator(Set Int)
 generateTeamNumbers n =
   set n randomTeam
-
-
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -100,7 +142,6 @@ update msg model =
       ( {model | teams = teamsMade}
         , Cmd.none
         )
-      }
 
 
 --SUBSCRIPTIONS
