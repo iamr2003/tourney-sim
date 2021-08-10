@@ -4,11 +4,12 @@ module Main exposing (..)
 import Browser
 import Html exposing (Html, button, div, text,li)
 import Html.Events exposing (onClick)
-import List exposing (map,foldr)
+import List exposing (map,foldr,take)
 import Random exposing (generate,Generator,pair)
 import Set exposing (Set,empty,toList)
-import Dict exposing(Dict,empty,fromList,map)
+import Dict exposing(Dict,empty,fromList,map,values)
 import Random.Set exposing(set)
+import Tuple exposing (first,second)
 import MatchScheduler exposing (..)
 import Team exposing (..)
 import Scoring exposing (..)
@@ -131,7 +132,7 @@ update msg model =
       )
     MakeList list ->
       ( {model | teamNumbers = list }
-        , Cmd.none
+        , generate MakeTeams (generateTeams model.teamNumbers model.attr_generators )
         )
     NewSchedule ->
       (model
@@ -141,7 +142,7 @@ update msg model =
       ( {model | schedule = (createSchedule scheduled)}
         , Cmd.none
         )
-    NewTeams ->
+    NewTeams -> --extraneous, but useful to be explicit
       ( model
       , generate MakeTeams (generateTeams model.teamNumbers model.attr_generators )
       )
@@ -195,6 +196,30 @@ matchDisplay match =
   , text ("blue: " ++ (foldr (++) "" (List.map padInt (toList match.blue))))
   ]
 
+teamAttributeDisplay : String -> TeamAttribute -> Html Msg
+teamAttributeDisplay name attr =
+  text(
+  case attr of
+    AttributeRange range ->
+      (String.fromFloat(first range) ++ " " ++ String.fromFloat (second range))
+    AttributeValue val ->
+      (String.fromFloat val)
+  )
+
+teamDisplay : Team -> Html Msg
+teamDisplay team =
+  div []
+  [ text ("Number: " ++ String.fromInt(team.number))
+  , text ("Name: " ++ team.name)
+  , div [] 
+    (Dict.values
+      (Dict.map
+        (\k v ->teamAttributeDisplay k v)
+        team.attrs
+      )
+    )
+  ]
+
 view : Model -> Html Msg
 view model =
   div []
@@ -204,6 +229,11 @@ view model =
   , page model.page
   , button [ onClick NewList ] [ text "New Team List" ]
   , listDisplay (Set.toList model.teamNumbers)
+  , div [] --some weird display stuff
+    (List.map
+      teamDisplay
+      (Dict.values model.teams)
+    )
   , button [ onClick NewSchedule ] [ text "New Schedule" ]
   , matchScheduleDisplay (model.schedule)
   ]
