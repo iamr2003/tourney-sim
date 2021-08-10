@@ -23,19 +23,26 @@ import Scoring exposing (..)
 --  'endgame':{'avgClimbState':[0,2],'avgBalanced':[0,1]}
 --  #dont worry about other subjective stats yet 
 --  }
-palmettoDist : Generator (Dict String TeamAtrribute)
+
+boundPair : Float -> Float -> Generator (Float,Float)
+boundPair min max =
+  Random.pair (Random.constant min) (Random.constant max)
+
+palmettoDist : Generator (Dict String TeamAttribute)
 palmettoDist =
   generateAttributes
-    Dict.map
+    (Dict.map
       (\key val -> generateAttribute val)
     --filled in only some things, can come up with full list later
-      Dict.fromList
-        [ ("autoCrossLine",Random.pair 0 1)
-        , ("autoBalls",Random.pair 0 6)
-        , ("teleopBalls",Random.pair 0 9)
-        , ("climbState", Random.pair 0 2) -- again, change into actual boolean/int at some point, or create rectification in rules
-        , ("climbBalance", Random pair 0 1)
+      (Dict.fromList
+        [ ("autoCrossLine",boundPair 0 1)
+        , ("autoBalls",boundPair 0 6)
+        , ("teleopBalls",boundPair 0 9)
+        , ("climbState", boundPair 0 2) -- again, change into actual boolean/int at some point, or create rectification in rules
+        , ("climbBalance", boundPair 0 1)
         ]
+      )
+    )
 
 --these aren't the real rules, also again need to support more complex types
 powerUpRules : Dict String Float
@@ -69,7 +76,7 @@ type alias Model =
   , teamNumbers : Set Int --maybe come up with an eventual bounding type
   , schedule : List Match
   , teams : Dict Int Team
-  , attr_generators : Generator (Dict String TeamAtrribute)
+  , attr_generators : Generator (Dict String TeamAttribute)
   }
 
 
@@ -104,7 +111,7 @@ randomTeamNumber =
 
 generateTeamNumbers : Int -> Generator(Set Int)
 generateTeamNumbers n =
-  set n randomTeam
+  set n randomTeamNumber
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -128,7 +135,7 @@ update msg model =
         )
     NewSchedule ->
       (model
-      , generate MakeSchedule (teamScheduler 3 model.teams)
+      , generate MakeSchedule (teamScheduler 3 model.teamNumbers)
       )
     MakeSchedule scheduled ->
       ( {model | schedule = (createSchedule scheduled)}
@@ -136,7 +143,7 @@ update msg model =
         )
     NewTeams ->
       ( model
-      , generate MakeTeams (generateTeams model.teamNumbers attr_generators )
+      , generate MakeTeams (generateTeams model.teamNumbers model.attr_generators )
       )
     MakeTeams teamsMade ->
       ( {model | teams = teamsMade}
@@ -168,12 +175,12 @@ rowItem id =
 
 listDisplay : List Int -> Html Msg
 listDisplay list =
-  div [] (map rowItem (map String.fromInt list))
+  div [] (List.map rowItem (List.map String.fromInt list))
 
 --I want to put these view functions somewhere else later
 matchScheduleDisplay : List Match -> Html Msg
 matchScheduleDisplay schedule =
-  div [] (map matchDisplay schedule)
+  div [] (List.map matchDisplay schedule)
 
 --there should be a better way to do this
 padInt : Int -> String
@@ -184,8 +191,8 @@ padInt int = (String.fromInt int) ++ " "
 matchDisplay : Match -> Html Msg
 matchDisplay match =
   div []
-  [ text ("red: " ++ (foldr (++) "" (map padInt (toList match.red))))
-  , text ("blue: " ++ (foldr (++) "" (map padInt (toList match.blue))))
+  [ text ("red: " ++ (foldr (++) "" (List.map padInt (toList match.red))))
+  , text ("blue: " ++ (foldr (++) "" (List.map padInt (toList match.blue))))
   ]
 
 view : Model -> Html Msg
@@ -196,7 +203,7 @@ view model =
   , button [ onClick Decrement ] [ text "-" ]
   , page model.page
   , button [ onClick NewList ] [ text "New Team List" ]
-  , listDisplay (Set.toList model.teams)
+  , listDisplay (Set.toList model.teamNumbers)
   , button [ onClick NewSchedule ] [ text "New Schedule" ]
   , matchScheduleDisplay (model.schedule)
   ]

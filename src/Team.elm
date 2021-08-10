@@ -4,9 +4,10 @@ import Random exposing (Generator,constant,pair,map)
 import Random.Float exposing (normal)
 import Dict exposing (Dict,map,foldl,toList)
 import Utils exposing (split)
-import List exposing (map2)
-import Set exposing (Set)
-
+import List exposing (foldl,singleton,append)
+import Random.Extra exposing (combine)
+import Set exposing (Set,toList)
+import Tuple exposing (first,second)
 --TO-DO, implement a parameterized mapping into this
 --FIX MORE TYPE STUFF
 
@@ -19,7 +20,7 @@ type TeamAttribute
 
 generateAttribute : Generator (Float , Float) -> Generator TeamAttribute
 generateAttribute boundGenerator =
-  Random.map (\x -> AttributeRange boundGenerator)
+  Random.map (\x -> AttributeRange x) boundGenerator
 
 --might eventually make a wrapper of type Float | Generator Float to make these things easier
 generateResult : TeamAttribute -> Generator Float
@@ -27,8 +28,10 @@ generateResult attr =
   case attr of
     AttributeRange bounds ->
       let 
-        mean = (bounds.first+bounds.second)/2
-        stdev = (bounds.second-mean)/3 --99.7% of distribution is between 3 stdevs of origin
+        min = first bounds
+        max = second bounds
+        mean = (min+max)/2
+        stdev = (max-mean)/3 --99.7% of distribution is between 3 stdevs of origin
       in
         (Random.Float.normal mean stdev)
     AttributeValue val -> --safety, this should never be called in usage
@@ -75,21 +78,22 @@ generateTeam num team_name attr_generators =
     (\x -> Team num team_name x)
     attr_generators
 
+
+--TYPES ARE STILL AN ISSUE here, as well as foldl stuff is odd
 --hyper specific implementation, but fine for now
 generateTeams : Set Int -> Generator (Dict String TeamAttribute) -> Generator (Dict Int Team)
 generateTeams teamSet attr_generators =
   let
-    teamList = Dict.toList teamSet
+    teamList = Set.toList teamSet
   in
-    Random.map
+    Random.map -- (List (Int , Team) -> Dict Int Team) -> Generator (List(Int,Team)) -> Generator (Dict Int Team)
       Dict.fromList
-      List.foldl --List (Generator Team) -> Generator (List Team)
-        (\n comboGen ->
-          Random.map 
-            (List.append comboGen) 
-            Random.pair
-              n
-              (generateTeam n ("Team" ++ String.fromInt(n)) attr_generators)
-        )
-        (Random.constant [])
-        teamList
+      (
+        combine
+          (List.map --List Int -> List (Generator (Int,Team))
+            (\n -> 
+              Random.pair (Random.constant n) (generateTeam n ("Team" ++ String.fromInt(n)) attr_generators)
+            )
+            teamList
+          )
+      )
