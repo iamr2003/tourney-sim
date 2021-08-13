@@ -5,11 +5,12 @@ import Browser
 import Html exposing (Html, button, div, text,li)
 import Html.Events exposing (onClick)
 import List exposing (map,foldr,take)
-import Random exposing (generate,Generator,pair)
+import Random exposing (generate,Generator,pair,float)
 import Set exposing (Set,empty,toList)
-import Dict exposing(Dict,empty,fromList,map,values)
+import Dict exposing(Dict,empty,fromList,map,values,keys)
 import Random.Set exposing(set)
 import Tuple exposing (first,second)
+import Round exposing (round)
 import MatchScheduler exposing (..)
 import Team exposing (..)
 import Scoring exposing (..)
@@ -27,7 +28,16 @@ import Scoring exposing (..)
 
 boundPair : Float -> Float -> Generator (Float,Float)
 boundPair min max =
-  Random.pair (Random.constant min) (Random.constant max)
+  Random.map --enforce ordering
+    (\n -> 
+      if (first n) > (second n)
+      then (second n, first n)
+      else n
+      )
+    (Random.pair 
+      (Random.float min max) 
+      (Random.float min max)
+    )
 
 palmettoDist : Generator (Dict String TeamAttribute)
 palmettoDist =
@@ -132,7 +142,7 @@ update msg model =
       )
     MakeList list ->
       ( {model | teamNumbers = list }
-        , generate MakeTeams (generateTeams model.teamNumbers model.attr_generators )
+        , Cmd.none
         )
     NewSchedule ->
       (model
@@ -143,14 +153,13 @@ update msg model =
         , Cmd.none
         )
     NewTeams -> --extraneous, but useful to be explicit
-      ( model
+      ( model --intermediate level of generation needed
       , generate MakeTeams (generateTeams model.teamNumbers model.attr_generators )
       )
     MakeTeams teamsMade ->
       ( {model | teams = teamsMade}
         , Cmd.none
         )
-
 
 --SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
@@ -201,16 +210,16 @@ teamAttributeDisplay name attr =
   text(
   case attr of
     AttributeRange range ->
-      (String.fromFloat(first range) ++ " " ++ String.fromFloat (second range))
+       name ++ " "++ (Round.round 2 (first range)) ++ " " ++ (Round.round 2 (second range))
     AttributeValue val ->
-      (String.fromFloat val)
+      name ++ (Round.round 2 val)
   )
 
 teamDisplay : Team -> Html Msg
 teamDisplay team =
   div []
-  [ text ("Number: " ++ String.fromInt(team.number))
-  , text ("Name: " ++ team.name)
+  [ div [] [text ("Number: " ++ String.fromInt(team.number))]
+  , div [] [text ("Name: " ++ team.name)]
   , div [] 
     (Dict.values
       (Dict.map
@@ -220,6 +229,7 @@ teamDisplay team =
     )
   ]
 
+
 view : Model -> Html Msg
 view model =
   div []
@@ -227,8 +237,9 @@ view model =
   , div [] [ text (String.fromInt model.page) ]
   , button [ onClick Decrement ] [ text "-" ]
   , page model.page
-  , button [ onClick NewList ] [ text "New Team List" ]
+  , button [ onClick NewList] [ text "New Team List" ] --need to figure out chaining later
   , listDisplay (Set.toList model.teamNumbers)
+  , button [ onClick NewTeams] [ text "New Teams" ]
   , div [] --some weird display stuff
     (List.map
       teamDisplay

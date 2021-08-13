@@ -92,7 +92,7 @@ generateTeams teamSet attr_generators =
         combine
           (List.map --List Int -> List (Generator (Int,Team))
             (\n -> 
-              Random.pair (Random.constant n) (generateTeam n ("Team" ++ String.fromInt(n)) attr_generators)
+              Random.pair (Random.constant n) (generateTeam n ("Team " ++ String.fromInt(n)) attr_generators)
             )
             teamList
           )
