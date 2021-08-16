@@ -1,9 +1,25 @@
 module Scoring exposing (..)
 
-import Team exposing (Team, TeamAttribute,coerceAttribute)
+import Team exposing (..)
 import Dict exposing (Dict,map,merge,empty)
+import MatchScheduler exposing (Match)
 
+--might put these in different files at some point
 
+--this signature is kind of weird, not sure if I like the overloading
+runMatch : Match -> Generator (Match)
+runMatch match =
+--TODO
+
+runTeam : Team -> Generator (Team)
+runTeam team =
+  Random.map
+    (\n -> Team team.number team.name n)
+    (generateAttributes 
+      (
+        Dict.map generateResult team.attrs
+      )
+    )
 
 scoreAttributes : Dict String TeamAttribute -> Dict String Float -> Dict String Float
 scoreAttributes attr rules =

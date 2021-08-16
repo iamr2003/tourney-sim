@@ -4,10 +4,10 @@ module MatchScheduler exposing (..)
 --DEBUG SOME MORE ISSUES WITH DISTRIBUTIONS, same team against each other on alliances
 
 -- I don't like the amount of imports needed, maybe reorganize dependencies at some point
-import Random exposing (Generator,map)
+import Random exposing (Generator,map,andThen)
 import List exposing (length,repeat,take,drop,map,foldr)
 import Random.List exposing(shuffle)
-import Set exposing (Set,size,toList,fromList)
+import Set exposing (Set,size,toList,fromList,empty)
 import Utils exposing (split)
 
 type alias Match =
@@ -16,6 +16,7 @@ type alias Match =
   , surrogates : Set Int
   }
 
+-- I think repetition issues might arise from this
 createMatch : List Int -> Match
 createMatch teams =
   let 
@@ -24,12 +25,12 @@ createMatch teams =
   in
   { red = fromList redList
   , blue = fromList blueList
-  , surrogates = []
+  , surrogates = Set.empty
   }
 
 --unused, could eventually be put back into chain
 --put of a mess since originally not written well
-generateMatch Generator (List Int): Generator Match
+generateMatch : Generator (List Int) -> Generator Match
 generateMatch teams =
   Random.map
     createMatch
@@ -43,19 +44,38 @@ createSchedule matchList =
 -- need to set fancier set bounds on this, random.list.choices might be helpful
 teamScheduler : Int -> Set Int -> Generator (List Int)
 teamScheduler matchesPerTeam teamList =
-  shuffle (foldr (++) [] (repeat matchesPerTeam (toList teamList)))
+  List.foldr -- Generator (List Int)
+    (\comboGen nextGen ->
+      Random.map2
+      (\x y -> x ++ y)
+      comboGen
+      nextGen
+    )
+    (Random.constant [])
+    (List.map shuffle (repeat matchesPerTeam (toList teamList)))
+    
+     -- List ( Generator List Int)
 
-generateSchedule : Int -> Set Int -> Generator (List Match)
-generateSchedule matchesPerTeam teamList =
+--schedule without surrogates
+generatePureSchedule : Int -> Set Int -> Generator (List Match)
+generatePureSchedule matchesPerTeam teamList =
   Random.map
     createSchedule
     (teamScheduler matchesPerTeam teamList)
 
--- need to figure out how to make this a generator again, not a generator(generator situation)
+--schedule with surrogates
+--generateScheduleWithSurrogates : Generator (List Match) -> Generator (List Match) 
+--generateScheduleWithSurrogates pureSchedule =
+--  Random.map
+
+
+---- need to figure out how to make this a generator again, not a generator(generator situation)
 --addSurrogatesInAlliance : List Int -> Set Int -> Set Int
 --addInSurrogates teamList alliance =
 --  let 
---    teamsToAdd = 
+--    teamsToAdd = 3 - (size alliance) --not putting in type safety for negative things, shouldn't be possible from existent, but need to check
+--    addList = take teamsToAdd teamList
+--  in 
 
   ----generator type issues
 --generateScheduleByTeam : Int -> Set Int -> Generator MatchSchedule

@@ -23,20 +23,27 @@ generateAttribute boundGenerator =
   Random.map (\x -> AttributeRange x) boundGenerator
 
 --might eventually make a wrapper of type Float | Generator Float to make these things easier
-generateResult : TeamAttribute -> Generator Float
+generateResult : TeamAttribute -> Generator TeamAttribute
 generateResult attr =
   case attr of
     AttributeRange bounds ->
-      let 
-        min = first bounds
-        max = second bounds
-        mean = (min+max)/2
-        stdev = (max-mean)/3 --99.7% of distribution is between 3 stdevs of origin
-      in
-        (Random.Float.normal mean stdev)
-    AttributeValue val -> --safety, this should never be called in usage
-      Random.constant val
+      Random.map
+        (\n -> AttributeValue n)
+        (let 
+          min = first bounds
+          max = second bounds
+          mean = (min+max)/2
+          stdev = (max-mean)/3 --99.7% of distribution is between 3 stdevs of origin
+        in
+          (Random.Float.normal mean stdev)
+        )
 
+    AttributeValue val -> --safety, this should never be called in usage
+      Random.map
+      (\n -> AttributeValue n)
+      (Random.constant val)
+
+--this method is dumb, but need to think
 coerceAttribute : TeamAttribute -> Float
 coerceAttribute attr =
   case attr of

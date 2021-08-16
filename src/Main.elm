@@ -112,7 +112,7 @@ type Msg
   | NewList
   | MakeList (Set Int)
   | NewSchedule
-  | MakeSchedule (List Int)
+  | MakeSchedule (List Match)
   | NewTeams
   | MakeTeams (Dict Int Team)
 
@@ -138,7 +138,7 @@ update msg model =
        )
     NewList ->
       (model
-      , generate MakeList (generateTeamNumbers 30)
+      , generate MakeList (generateTeamNumbers 30) --current numbers are perfect so no surrogates, fix later
       )
     MakeList list ->
       ( {model | teamNumbers = list }
@@ -146,10 +146,10 @@ update msg model =
         )
     NewSchedule ->
       (model
-      , generate MakeSchedule (teamScheduler 3 model.teamNumbers)
+      , generate MakeSchedule (generatePureSchedule 3 model.teamNumbers)
       )
     MakeSchedule scheduled ->
-      ( {model | schedule = (createSchedule scheduled)}
+      ( {model | schedule = scheduled}
         , Cmd.none
         )
     NewTeams -> --extraneous, but useful to be explicit
