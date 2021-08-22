@@ -1,16 +1,44 @@
 module Scoring exposing (..)
 
 import Team exposing (..)
-import Dict exposing (Dict,map,merge,empty)
+import List exposing (map,filtermap)
+import Dict exposing (Dict,map,merge,empty,get)
+import Set exposing (toList)
+import Random.Extra exposing (combine)
 import MatchScheduler exposing (Match)
 
 --might put these in different files at some point
 
---this signature is kind of weird, not sure if I like the overloading
-runMatch : Match -> Generator (Match)
-runMatch match =
---TODO
+--I don't like the naming that much, has to switch from numbers to refs, might restructure at some point
+type alias MatchResult =
+  { red : List Team
+  , blue : List Team
+  , surrogates : Set Int
+  }
 
+runMatches
+
+runMatch : Match -> Dict Int Team -> Generator (MatchResult)
+runMatch match teams =
+  Random.map2
+    (\r b -> MatchResult r b match.surrogates)
+    (runAlliance match.red teams)
+    (runAlliance match.blue teams)
+
+runAlliance : Set Int -> Dict Int Team -> Generator (List Team)
+runAlliance alliance teams =
+  let
+    allianceList = toList alliance
+  in
+  combine
+    (List.map
+      runTeam
+      (List.filtermap
+        (\n -> get n teams)
+        allianceList
+      )
+    )
+--this signature is kind of weird, not sure if I like the overloading
 runTeam : Team -> Generator (Team)
 runTeam team =
   Random.map
