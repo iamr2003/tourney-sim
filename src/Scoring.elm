@@ -1,9 +1,10 @@
 module Scoring exposing (..)
 
 import Team exposing (..)
-import List exposing (map,filtermap)
+import List exposing (map,filterMap)
+import Random exposing (Generator, map)
 import Dict exposing (Dict,map,merge,empty,get)
-import Set exposing (toList)
+import Set exposing (toList,Set)
 import Random.Extra exposing (combine)
 import MatchScheduler exposing (Match)
 
@@ -16,7 +17,12 @@ type alias MatchResult =
   , surrogates : Set Int
   }
 
-runMatches
+runMatches : List Match -> Dict Int Team -> Generator (List MatchResult)
+runMatches matches teams =
+  combine
+  (List.map
+    (\m -> runMatch m teams)
+    matches)
 
 runMatch : Match -> Dict Int Team -> Generator (MatchResult)
 runMatch match teams =
@@ -33,7 +39,7 @@ runAlliance alliance teams =
   combine
     (List.map
       runTeam
-      (List.filtermap
+      (List.filterMap
         (\n -> get n teams)
         allianceList
       )
@@ -45,7 +51,9 @@ runTeam team =
     (\n -> Team team.number team.name n)
     (generateAttributes 
       (
-        Dict.map generateResult team.attrs
+        Dict.map 
+          (\k v -> generateResult v) 
+          team.attrs
       )
     )
 

@@ -86,6 +86,7 @@ type alias Model =
   { page : Int 
   , teamNumbers : Set Int --maybe come up with an eventual bounding type
   , schedule : List Match
+  , results : List MatchResult
   , teams : Dict Int Team
   , attr_generators : Generator (Dict String TeamAttribute)
   }
@@ -97,6 +98,7 @@ init _ =
   ({ page = 0
    , teamNumbers = Set.empty
    , schedule = []
+   , results = []
    , teams = Dict.empty
    , attr_generators = palmettoDist
    }
@@ -115,6 +117,8 @@ type Msg
   | MakeSchedule (List Match)
   | NewTeams
   | MakeTeams (Dict Int Team)
+  | NewResults
+  | MakeResults (List MatchResult)
 
 randomTeamNumber : Generator Int
 randomTeamNumber =
@@ -151,7 +155,7 @@ update msg model =
     MakeSchedule scheduled ->
       ( {model | schedule = scheduled}
         , Cmd.none
-        )
+      )
     NewTeams -> --extraneous, but useful to be explicit
       ( model --intermediate level of generation needed
       , generate MakeTeams (generateTeams model.teamNumbers model.attr_generators )
@@ -159,7 +163,15 @@ update msg model =
     MakeTeams teamsMade ->
       ( {model | teams = teamsMade}
         , Cmd.none
-        )
+      )
+    NewResults ->
+      ( model
+      , generate MakeResults (runMatches model.schedule model.teams) 
+      )
+    MakeResults newResults ->
+      ( {model | results = newResults}
+      , Cmd.none
+      )
 
 --SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
@@ -229,6 +241,22 @@ teamDisplay team =
     )
   ]
 
+allianceDisplay : List Team -> Html Msg
+allianceDisplay alliance =
+  div []
+  (List.map
+    teamDisplay
+    alliance
+  )
+
+
+resultDisplay : MatchResult -> Html Msg
+resultDisplay result =
+  div []
+  [ allianceDisplay result.red
+  , allianceDisplay result.blue
+  , listDisplay ( Set.toList result.surrogates)
+  ]
 
 view : Model -> Html Msg
 view model =
@@ -247,4 +275,10 @@ view model =
     )
   , button [ onClick NewSchedule ] [ text "New Schedule" ]
   , matchScheduleDisplay (model.schedule)
+  , button [ onClick NewResults ] [ text "Run Matches" ]
+  , div [] --some more display stuff should be done, especially in related to scoring
+    (List.map
+      resultDisplay
+      (model.results)
+    )
   ]
