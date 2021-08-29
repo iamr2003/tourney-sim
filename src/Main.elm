@@ -2,7 +2,7 @@ module Main exposing (..)
 
 
 import Browser
-import Html exposing (Html, button, div, text,li)
+import Html exposing (Html)
 import Html.Events exposing (onClick)
 import List exposing (map,foldr,take)
 import Random exposing (generate,Generator,pair,float)
@@ -14,6 +14,14 @@ import Round exposing (round)
 import MatchScheduler exposing (..)
 import Team exposing (..)
 import Scoring exposing (..)
+
+--elm-ui imports
+import Element exposing (..)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Element.Input as Input
+import Element.Region as Region
 
 --PARAMS
 
@@ -109,9 +117,7 @@ init _ =
 -- UPDATE
 
 type Msg
-  = Increment
-  | Decrement
-  | NewList
+  = NewList
   | MakeList (Set Int)
   | NewSchedule
   | MakeSchedule (List Match)
@@ -131,15 +137,6 @@ generateTeamNumbers n =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
-    Increment ->
-      -- figure out more condensed way to write this, probably can sub function if I want
-     ( {model | page = model.page + 1}
-       , Cmd.none
-       )
-    Decrement ->
-      ({model | page = model.page - 1}
-       , Cmd.none
-       )
     NewList ->
       (model
       , generate MakeList (generateTeamNumbers 30) --current numbers are perfect so no surrogates, fix later
@@ -179,30 +176,20 @@ subscriptions model =
   Sub.none
 
 -- VIEW
-page : Int -> Html Msg
-page number =
-  div []
-    [text ("Page "++ String.fromInt number) ]
 
+--rowItem : String -> Html Msg
+--rowItem id =
+--    div []
+--        [ text id ]
 
---swap with HTML map at some point
---intLine : Int -> String
---intLine int =
---  "\n"++ String.fromInt int
-
-rowItem : String -> Html Msg
-rowItem id =
-    div []
-        [ text id ]
-
-listDisplay : List Int -> Html Msg
-listDisplay list =
-  div [] (List.map rowItem (List.map String.fromInt list))
+--viewList : List Int -> Html Msg
+--viewList list =
+--  div [] (List.map rowItem (List.map String.fromInt list))
 
 --I want to put these view functions somewhere else later
-matchScheduleDisplay : List Match -> Html Msg
-matchScheduleDisplay schedule =
-  div [] (List.map matchDisplay schedule)
+viewMatchSchedule : List Match -> Element Msg
+viewMatchSchedule schedule =
+  Element.column [] (List.map viewMatch schedule)
 
 --there should be a better way to do this
 padInt : Int -> String
@@ -210,16 +197,18 @@ padInt int = (String.fromInt int) ++ " "
 
 --issue with sometimes incomplete matches
 --eventually reformat with other operators for better syntax
-matchDisplay : Match -> Html Msg
-matchDisplay match =
-  div []
-  [ text ("red: " ++ (foldr (++) "" (List.map padInt (toList match.red))))
-  , text ("blue: " ++ (foldr (++) "" (List.map padInt (toList match.blue))))
+viewMatch : Match -> Element Msg
+viewMatch match =
+  Element.column
+  []
+  [
+  el [ Background.color (rgb 0.8 0 0) ] (Element.text ("red: " ++ (foldr (++) "" (List.map padInt (toList match.red))))),
+  el [ Background.color (rgb 0 0 0.8) ] (Element.text ("blue: " ++ (foldr (++) "" (List.map padInt (toList match.blue)))))
   ]
 
-teamAttributeDisplay : String -> TeamAttribute -> Html Msg
-teamAttributeDisplay name attr =
-  text(
+viewTeamAttribute : String -> TeamAttribute -> Element Msg
+viewTeamAttribute name attr =
+  Element.text(
   case attr of
     AttributeRange range ->
        name ++ " "++ (Round.round 2 (first range)) ++ " " ++ (Round.round 2 (second range))
@@ -227,58 +216,89 @@ teamAttributeDisplay name attr =
       name ++ (Round.round 2 val)
   )
 
-teamDisplay : Team -> Html Msg
-teamDisplay team =
-  div []
-  [ div [] [text ("Number: " ++ String.fromInt(team.number))]
-  , div [] [text ("Name: " ++ team.name)]
-  , div [] 
+viewTeam : Team -> Element Msg
+viewTeam team =
+  Element.column 
+  []
+  [ el [] (Element.text ("Number: " ++ String.fromInt(team.number)))
+  , el [] (Element.text ("Name: " ++ team.name))
+  , Element.wrappedRow [] 
     (Dict.values
       (Dict.map
-        (\k v ->teamAttributeDisplay k v)
+        (\k v ->viewTeamAttribute k v)
         team.attrs
       )
     )
   ]
 
-allianceDisplay : List Team -> Html Msg
-allianceDisplay alliance =
-  div []
+viewAlliance : List Team -> Element Msg
+viewAlliance alliance =
+  Element.column
+  []
   (List.map
-    teamDisplay
+    viewTeam
     alliance
   )
 
 
-resultDisplay : MatchResult -> Html Msg
-resultDisplay result =
-  div []
-  [ allianceDisplay result.red
-  , allianceDisplay result.blue
-  , listDisplay ( Set.toList result.surrogates)
+viewMatchResult : MatchResult -> Element Msg
+viewMatchResult result =
+  Element.column 
+  []
+  [ viewAlliance result.red
+  , viewAlliance result.blue
+  , Element.row [] (List.map (\n ->text (String.fromInt n)) (Set.toList result.surrogates))
   ]
 
+
+viewTeamListMaker : Model -> Element Msg
+viewTeamListMaker model =
+  Element.column
+  []
+  [ Input.button [] { onPress = Just NewList , label = text "New Team List"}
+  , Element.column [] (List.map (\n ->text (String.fromInt n)) (Set.toList model.teamNumbers))
+  ]
+
+viewMatchScheduleMaker : Model -> Element Msg
+viewMatchScheduleMaker model =
+  Element.column
+  []
+  [ Input.button [] { onPress = Just NewSchedule , label = text "New Match Schedule"}
+  , viewMatchSchedule model.schedule
+  ]
+
+-- make prettier
 view : Model -> Html Msg
 view model =
-  div []
-  [ button [ onClick Increment ] [ text "+" ]
-  , div [] [ text (String.fromInt model.page) ]
-  , button [ onClick Decrement ] [ text "-" ]
-  , page model.page
-  , button [ onClick NewList] [ text "New Team List" ] --need to figure out chaining later
-  , listDisplay (Set.toList model.teamNumbers)
-  , button [ onClick NewTeams] [ text "New Teams" ]
-  , div [] --some weird display stuff
-    (List.map
-      teamDisplay
-      (Dict.values model.teams)
-    )
-  , button [ onClick NewSchedule ] [ text "New Schedule" ]
-  , matchScheduleDisplay (model.schedule)
-  , button [ onClick NewResults ] [ text "Run Matches" ]
-  , div [] --some more display stuff should be done, especially in related to scoring
-    (List.map
-      resultDisplay
-      (model.results)
-    )
-  ]
+  Element.layout
+    []
+  <|
+    Element.column
+      []
+      [ 
+        Element.wrappedRow 
+        []
+        [ viewTeamListMaker model
+        , viewMatchScheduleMaker model 
+        ]
+
+      ]
+
+  --div []
+  --[ button [ onClick NewList] [ text "New Team List" ] --need to figure out chaining later
+  --, viewList (Set.toList model.teamNumbers)
+  --, button [ onClick NewTeams] [ text "New Teams" ]
+  --, div [] --some weird display stuff
+  --  (List.map
+  --    teamDisplay
+  --    (Dict.values model.teams)
+  --  )
+  --, button [ onClick NewSchedule ] [ text "New Schedule" ]
+  --, viewMatchSchedule (model.schedule)
+  --, button [ onClick NewResults ] [ text "Run Matches" ]
+  --, div [] --some more display stuff should be done, especially in related to scoring
+  --  (List.map
+  --    viewMatchResult
+  --    (model.results)
+  --  )
+  --]
