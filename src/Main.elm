@@ -197,14 +197,38 @@ padInt int = (String.fromInt int) ++ " "
 
 --issue with sometimes incomplete matches
 --eventually reformat with other operators for better syntax
+
+viewAllianceNumbers : Set Int -> Element Msg
+viewAllianceNumbers alliance =
+    Element.row
+      [
+      spacing 10
+      ]
+      (List.map 
+        (\n ->
+          el
+          [ width (px 100)
+          , Font.center
+          ]
+          (text (String.fromInt n))
+        ) 
+        (toList alliance)
+      )
+
 viewMatch : Match -> Element Msg
 viewMatch match =
   Element.column
-  []
-  [
-  el [ Background.color (rgb 0.8 0 0) ] (Element.text ("red: " ++ (foldr (++) "" (List.map padInt (toList match.red))))),
-  el [ Background.color (rgb 0 0 0.8) ] (Element.text ("blue: " ++ (foldr (++) "" (List.map padInt (toList match.blue)))))
+  [ padding 5]
+  [ el 
+      [ Background.color (rgb255 255 238 238) ] 
+      (viewAllianceNumbers match.red) 
+      --(Element.text ("red: " ++ (foldr (++) "" (List.map padInt (toList match.red)))))    
+  , el 
+      [ Background.color (rgb255 238 238 255) ] 
+      (viewAllianceNumbers match.blue) 
   ]
+
+  --I'm using (\n ->text (String.fromInt n)) a lot, should probably make it a real function at some point
 
 viewTeamAttribute : String -> TeamAttribute -> Element Msg
 viewTeamAttribute name attr =
@@ -254,18 +278,37 @@ viewMatchResult result =
 viewTeamListMaker : Model -> Element Msg
 viewTeamListMaker model =
   Element.column
-  []
-  [ Input.button [] { onPress = Just NewList , label = text "New Team List"}
-  , Element.column [] (List.map (\n ->text (String.fromInt n)) (Set.toList model.teamNumbers))
+  [spacing 5]
+  [ Input.button [] { onPress = Just NewList , label = el [width (px 150),Font.center] (text "New Team List") }
+  , Element.column 
+      [centerX, spacing 5] 
+      (
+        List.map 
+          (\n ->text (String.fromInt n)) 
+          (Set.toList model.teamNumbers)
+      )
   ]
 
 viewMatchScheduleMaker : Model -> Element Msg
 viewMatchScheduleMaker model =
   Element.column
-  []
-  [ Input.button [] { onPress = Just NewSchedule , label = text "New Match Schedule"}
+  [centerX]
+  [ Input.button [] { onPress = Just NewSchedule , label = el [width (px 330), Font.center] (text "New Match Schedule") }
   , viewMatchSchedule model.schedule
   ]
+
+viewTeamMaker : Model -> Element Msg
+viewTeamMaker model =
+  Element.column
+  []
+  [ Input.button [] {onPress = Just NewTeams, label = text "New Team Properties"}
+  , Element.wrappedRow
+      []
+      (List.map
+        viewTeam
+        (Dict.values model.teams)
+      )
+  ]  
 
 -- make prettier
 view : Model -> Html Msg
@@ -275,13 +318,14 @@ view model =
   <|
     Element.column
       []
-      [ 
-        Element.wrappedRow 
-        []
-        [ viewTeamListMaker model
-        , viewMatchScheduleMaker model 
-        ]
-
+      [ Element.wrappedRow 
+          [ spacing 20
+          , alignTop
+          ]
+          [ viewTeamListMaker model
+          , viewMatchScheduleMaker model 
+          ]
+      , viewTeamMaker model
       ]
 
   --div []
