@@ -94,3 +94,8 @@ scoreDict dict rules =
         dict
         rules
         Dict.empty
+
+
+scoreTotal : Dict String Float -> Float
+scoreTotal results =
+    List.foldl (+) 0 (Dict.values results)

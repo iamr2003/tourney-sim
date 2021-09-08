@@ -207,33 +207,11 @@ subscriptions model =
 
 
 -- VIEW
---rowItem : String -> Html Msg
---rowItem id =
---    div []
---        [ text id ]
---viewList : List Int -> Html Msg
---viewList list =
---  div [] (List.map rowItem (List.map String.fromInt list))
---I want to put these view functions somewhere else later
 
 
 viewMatchSchedule : List Match -> Element Msg
 viewMatchSchedule schedule =
     Element.column [] (List.map viewMatch schedule)
-
-
-
---there should be a better way to do this
-
-
-padInt : Int -> String
-padInt int =
-    String.fromInt int ++ " "
-
-
-
---issue with sometimes incomplete matches
---eventually reformat with other operators for better syntax
 
 
 viewAllianceNumbers : Set Int -> Element Msg
@@ -260,8 +238,6 @@ viewMatch match =
         [ el
             [ Background.color (rgb255 255 238 238) ]
             (viewAllianceNumbers match.red)
-
-        --(Element.text ("red: " ++ (foldr (++) "" (List.map padInt (toList match.red)))))
         , el
             [ Background.color (rgb255 238 238 255) ]
             (viewAllianceNumbers match.blue)
@@ -274,22 +250,27 @@ viewMatch match =
 
 viewTeamAttribute : String -> TeamAttribute -> Element Msg
 viewTeamAttribute name attr =
-    Element.text
-        (case attr of
-            AttributeRange range ->
-                name ++ " " ++ Round.round 2 (first range) ++ " " ++ Round.round 2 (second range)
+    el []
+        (Element.text
+            (case attr of
+                AttributeRange range ->
+                    name ++ ": " ++ Round.round 2 (first range) ++ " " ++ Round.round 2 (second range)
 
-            AttributeValue val ->
-                name ++ Round.round 2 val
+                AttributeValue val ->
+                    name ++ ": " ++ Round.round 2 val
+            )
         )
 
 
 viewTeam : Team -> Element Msg
 viewTeam team =
     Element.column
-        []
-        [ el [] (Element.text ("Number: " ++ String.fromInt team.number))
-        , el [] (Element.text ("Name: " ++ team.name))
+        [ Font.size 14
+        , Border.width 2
+        , Border.rounded 4
+        ]
+        [ el [] (Element.text (String.fromInt team.number))
+        , el [] (Element.text team.name)
         , Element.wrappedRow []
             (Dict.values
                 (Dict.map
@@ -334,6 +315,10 @@ viewTeamListMaker model =
         ]
 
 
+
+--eventually integrate the results maker in here
+
+
 viewMatchScheduleMaker : Model -> Element Msg
 viewMatchScheduleMaker model =
     Element.column
@@ -349,7 +334,7 @@ viewTeamMaker model =
         []
         [ Input.button [] { onPress = Just NewTeams, label = text "New Team Properties" }
         , Element.wrappedRow
-            []
+            [ spacing 5 ]
             (List.map
                 viewTeam
                 (Dict.values model.teams)
