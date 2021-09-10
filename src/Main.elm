@@ -1,7 +1,5 @@
 module Main exposing (..)
 
---elm-ui imports
-
 import Browser
 import Dict exposing (Dict, empty, fromList, keys, map, values)
 import Element exposing (..)
@@ -24,6 +22,13 @@ import Tuple exposing (first, second)
 
 
 
+--SPEC for first release
+--Attribute generator knobs
+--simple rule import(all double)
+--breakdowns on separate redirect(or some other clever UI solution)
+--Some type of analysis(rank or something else)
+--Some kind of result export
+------------------------
 --PARAMS
 --might make this more tree structure at some point(auto, Dict of Dict, some other structure), and better wrappers
 --based on python simulator
@@ -73,8 +78,8 @@ palmettoDist =
 --these aren't the real rules, also again need to support more complex types
 
 
-powerUpRules : Dict String Float
-powerUpRules =
+infRechargeRules : Dict String Float
+infRechargeRules =
     Dict.fromList
         [ ( "autoCrossLine", 5 )
         , ( "autoBalls", 4 )
@@ -86,6 +91,7 @@ powerUpRules =
 
 
 -- MAIN
+--need to switch to web app for link breakdown stuff
 
 
 main =
@@ -108,6 +114,7 @@ type alias Model =
     , results : List MatchResult
     , teams : Dict Int Team
     , attr_generators : Generator (Dict String TeamAttribute)
+    , rules : Dict String Float
     }
 
 
@@ -119,6 +126,7 @@ init _ =
       , results = []
       , teams = Dict.empty
       , attr_generators = palmettoDist
+      , rules = infRechargeRules
       }
     , Cmd.none
     )
@@ -207,11 +215,17 @@ subscriptions model =
 
 
 -- VIEW
+--these things can likely be reordered or broken into files, finding stuff is annoying atm
 
 
 viewMatchSchedule : List Match -> Element Msg
 viewMatchSchedule schedule =
     Element.column [] (List.map viewMatch schedule)
+
+
+viewMatchResults : List MatchResult -> Dict String Float -> Element Msg
+viewMatchResults results rules =
+    Element.column [] (List.map (\n -> viewMatchResult n rules) results)
 
 
 viewAllianceNumbers : Set Int -> Element Msg
@@ -244,6 +258,39 @@ viewMatch match =
         ]
 
 
+viewMatchResult : MatchResult -> Dict String Float -> Element Msg
+viewMatchResult result rules =
+    let
+        redScore =
+            scoreAlliance result.red rules
+
+        blueScore =
+            scoreAlliance result.blue rules
+    in
+    Element.column
+        [ padding 5
+        ]
+        [ el
+            [ Background.color (rgb255 255 238 238)
+            , if redScore > blueScore then
+                Font.bold
+
+              else
+                Font.regular
+            ]
+            (Element.text (Round.round 0 redScore))
+        , el
+            [ Background.color (rgb255 238 238 255)
+            , if redScore < blueScore then
+                Font.bold
+
+              else
+                Font.regular
+            ]
+            (Element.text (Round.round 0 blueScore))
+        ]
+
+
 
 --I'm using (\n ->text (String.fromInt n)) a lot, should probably make it a real function at some point
 
@@ -271,7 +318,7 @@ viewTeam team =
         ]
         [ el [] (Element.text (String.fromInt team.number))
         , el [] (Element.text team.name)
-        , Element.wrappedRow []
+        , Element.wrappedRow [ padding 2 ]
             (Dict.values
                 (Dict.map
                     (\k v -> viewTeamAttribute k v)
@@ -291,8 +338,8 @@ viewAlliance alliance =
         )
 
 
-viewMatchResult : MatchResult -> Element Msg
-viewMatchResult result =
+viewMatchBreakdown : MatchResult -> Element Msg
+viewMatchBreakdown result =
     Element.column
         []
         [ viewAlliance result.red
@@ -321,10 +368,18 @@ viewTeamListMaker model =
 
 viewMatchScheduleMaker : Model -> Element Msg
 viewMatchScheduleMaker model =
-    Element.column
-        [ centerX ]
-        [ Input.button [] { onPress = Just NewSchedule, label = el [ width (px 330), Font.center ] (text "New Match Schedule") }
-        , viewMatchSchedule model.schedule
+    Element.row
+        []
+        [ Element.column
+            [ centerX ]
+            [ Input.button [] { onPress = Just NewSchedule, label = el [ width (px 330), Font.center ] (text "New Match Schedule") }
+            , viewMatchSchedule model.schedule
+            ]
+        , Element.column
+            [ centerX ]
+            [ Input.button [] { onPress = Just NewResults, label = el [ width (px 150), Font.center ] (text "New Results") }
+            , viewMatchResults model.results model.rules
+            ]
         ]
 
 

@@ -70,6 +70,19 @@ runTeam team =
         )
 
 
+scoreAlliance : List Team -> Dict String Float -> Float
+scoreAlliance alliance rules =
+    List.foldl
+        (+)
+        0
+        (List.map
+            (\n ->
+                scoreTotal (scoreAttributes n.attrs rules)
+            )
+            alliance
+        )
+
+
 scoreAttributes : Dict String TeamAttribute -> Dict String Float -> Dict String Float
 scoreAttributes attr rules =
     scoreDict
