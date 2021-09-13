@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Browser
+import Browser.Navigation as Nav
 import Dict exposing (Dict, empty, fromList, keys, map, values)
 import Element exposing (..)
 import Element.Background as Background
@@ -19,11 +20,13 @@ import Scoring exposing (..)
 import Set exposing (Set, empty, toList)
 import Team exposing (..)
 import Tuple exposing (first, second)
+import Url
 
 
 
 --SPEC for first release
 --Attribute generator knobs
+--variable sample size knobs(team number, match number)
 --simple rule import(all double)
 --breakdowns on separate redirect(or some other clever UI solution)
 --Some type of analysis(rank or something else)
@@ -95,11 +98,13 @@ infRechargeRules =
 
 
 main =
-    Browser.element
+    Browser.application
         { init = init
         , update = update
         , subscriptions = subscriptions
         , view = view
+        , onUrlChange = UrlChanged
+        , onUrlRequest = LinkClicked
         }
 
 
@@ -115,19 +120,14 @@ type alias Model =
     , teams : Dict Int Team
     , attr_generators : Generator (Dict String TeamAttribute)
     , rules : Dict String Float
+    , key : Nav.Key
+    , url : Url.Url
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { page = 0
-      , teamNumbers = Set.empty
-      , schedule = []
-      , results = []
-      , teams = Dict.empty
-      , attr_generators = palmettoDist
-      , rules = infRechargeRules
-      }
+init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url key =
+    ( Model 0 Set.empty [] [] Dict.empty palmettoDist infRechargeRules key url
     , Cmd.none
     )
 
@@ -145,6 +145,8 @@ type Msg
     | MakeTeams (Dict Int Team)
     | NewResults
     | MakeResults (List MatchResult)
+    | LinkClicked Browser.UrlRequest
+    | UrlChanged Url.Url
 
 
 randomTeamNumber : Generator Int
@@ -200,6 +202,19 @@ update msg model =
 
         MakeResults newResults ->
             ( { model | results = newResults }
+            , Cmd.none
+            )
+
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model, Nav.pushUrl model.key (Url.toString url) )
+
+                Browser.External href ->
+                    ( model, Nav.load href )
+
+        UrlChanged url ->
+            ( { model | url = url }
             , Cmd.none
             )
 
@@ -401,40 +416,25 @@ viewTeamMaker model =
 -- make prettier
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    Element.layout
-        []
-    <|
-        Element.column
-            []
-            [ Element.wrappedRow
-                [ spacing 20
-                , alignTop
-                ]
-                [ viewTeamListMaker model
-                , viewMatchScheduleMaker model
-                ]
-            , viewTeamMaker model
-            ]
-
-
-
---div []
---[ button [ onClick NewList] [ text "New Team List" ] --need to figure out chaining later
---, viewList (Set.toList model.teamNumbers)
---, button [ onClick NewTeams] [ text "New Teams" ]
---, div [] --some weird display stuff
---  (List.map
---    teamDisplay
---    (Dict.values model.teams)
---  )
---, button [ onClick NewSchedule ] [ text "New Schedule" ]
---, viewMatchSchedule (model.schedule)
---, button [ onClick NewResults ] [ text "Run Matches" ]
---, div [] --some more display stuff should be done, especially in related to scoring
---  (List.map
---    viewMatchResult
---    (model.results)
---  )
---]
+    { title = "My Document"
+    , body =
+        List.singleton
+            (Element.layout
+                []
+             <|
+                Element.column
+                    []
+                    [ Element.wrappedRow
+                        [ spacing 20
+                        , alignTop
+                        ]
+                        [ viewTeamListMaker model
+                        , viewMatchScheduleMaker model
+                        ]
+                    , viewTeamMaker model
+                    , text ("The current URL is: " ++ Url.toString model.url)
+                    ]
+            )
+    }
