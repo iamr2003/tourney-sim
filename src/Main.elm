@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import Array exposing (Array, fromList)
 import Browser
 import Browser.Navigation as Nav
 import Dict exposing (Dict, empty, fromList, keys, map, values)
@@ -21,6 +22,7 @@ import Set exposing (Set, empty, toList)
 import Team exposing (..)
 import Tuple exposing (first, second)
 import Url
+import Url.Parser exposing ((</>), Parser, int, map, oneOf, s, string)
 
 
 
@@ -240,7 +242,7 @@ viewMatchSchedule schedule =
 
 viewMatchResults : List MatchResult -> Dict String Float -> Element Msg
 viewMatchResults results rules =
-    Element.column [] (List.map (\n -> viewMatchResult n rules) results)
+    Element.column [] (List.indexedMap (\i n -> viewMatchResult (i + 1) n rules) results)
 
 
 viewAllianceNumbers : Set Int -> Element Msg
@@ -273,8 +275,8 @@ viewMatch match =
         ]
 
 
-viewMatchResult : MatchResult -> Dict String Float -> Element Msg
-viewMatchResult result rules =
+viewMatchResult : Int -> MatchResult -> Dict String Float -> Element Msg
+viewMatchResult match_number result rules =
     let
         redScore =
             scoreAlliance result.red rules
@@ -293,7 +295,7 @@ viewMatchResult result rules =
               else
                 Font.regular
             ]
-            (Element.text (Round.round 0 redScore))
+            (link [] { url = "/result/" ++ String.fromInt match_number, label = Element.text (Round.round 0 redScore) })
         , el
             [ Background.color (rgb255 238 238 255)
             , if redScore < blueScore then
@@ -302,7 +304,7 @@ viewMatchResult result rules =
               else
                 Font.regular
             ]
-            (Element.text (Round.round 0 blueScore))
+            (link [] { url = "/result/" ++ String.fromInt match_number, label = Element.text (Round.round 0 blueScore) })
         ]
 
 
@@ -353,14 +355,19 @@ viewAlliance alliance =
         )
 
 
-viewMatchBreakdown : MatchResult -> Element Msg
-viewMatchBreakdown result =
-    Element.column
-        []
-        [ viewAlliance result.red
-        , viewAlliance result.blue
-        , Element.row [] (List.map (\n -> text (String.fromInt n)) (Set.toList result.surrogates))
-        ]
+viewMatchBreakdown : Maybe MatchResult -> Element Msg
+viewMatchBreakdown m_result =
+    case m_result of
+        Just result ->
+            Element.column
+                []
+                [ viewAlliance result.red
+                , viewAlliance result.blue
+                , Element.row [] (List.map (\n -> text (String.fromInt n)) (Set.toList result.surrogates))
+                ]
+
+        Nothing ->
+            Element.none
 
 
 viewTeamListMaker : Model -> Element Msg
@@ -413,28 +420,76 @@ viewTeamMaker model =
 
 
 
--- make prettier
+--I know this is not the best organization for this, but will fix a bit later
+
+
+type View_Mode
+    = Main
+    | Result_Breakdown Int
+
+
+
+--this is all super jank, should use proper mapping parser stuff
+
+
+parseURLtoView : Url.Url -> View_Mode
+parseURLtoView url =
+    let
+        match_number =
+            Url.Parser.parse (s "result" </> int) url
+    in
+    case match_number of
+        Nothing ->
+            Main
+
+        Just n ->
+            Result_Breakdown n
 
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "My Document"
-    , body =
-        List.singleton
-            (Element.layout
-                []
-             <|
-                Element.column
-                    []
-                    [ Element.wrappedRow
-                        [ spacing 20
-                        , alignTop
-                        ]
-                        [ viewTeamListMaker model
-                        , viewMatchScheduleMaker model
-                        ]
-                    , viewTeamMaker model
-                    , text ("The current URL is: " ++ Url.toString model.url)
-                    ]
-            )
-    }
+    let
+        view_mode =
+            parseURLtoView model.url
+    in
+    case view_mode of
+        Main ->
+            { title = "Main Page"
+            , body =
+                --body is supposed to have multiple nodes in a list, but idk how to switch between them
+                List.singleton
+                    (Element.layout
+                        []
+                     <|
+                        Element.column
+                            []
+                            [ Element.wrappedRow
+                                [ spacing 20
+                                , alignTop
+                                ]
+                                [ viewTeamListMaker model
+                                , viewMatchScheduleMaker model
+                                ]
+                            , viewTeamMaker model
+
+                            --, link [] { url = "/result/1", label = text "A link" } --now ready to do fancy parsing
+                            ]
+                    )
+            }
+
+        Result_Breakdown n ->
+            { title = "Match Breakdown"
+            , body =
+                List.singleton
+                    (Element.layout
+                        []
+                        (Element.column
+                            []
+                            [ text ("Match " ++ String.fromInt n)
+
+                            --this code is kind of stupid, I'll fix types up and down the line later
+                            , viewMatchBreakdown (Array.get (n - 1) (Array.fromList model.results))
+                            ]
+                        )
+                    )
+            }
