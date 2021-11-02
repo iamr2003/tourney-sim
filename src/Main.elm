@@ -21,6 +21,7 @@ import Scoring exposing (..)
 import Set exposing (Set, empty, toList)
 import Team exposing (..)
 import Tuple exposing (first, second)
+import Update.Extra exposing (andThen)
 import Url
 import Url.Parser exposing ((</>), Parser, int, map, oneOf, s, string)
 
@@ -170,10 +171,13 @@ update msg model =
               --current numbers are perfect so no surrogates, fix later
             )
 
+        -- some cool callback chaining, change things that it depends on
         MakeList list ->
             ( { model | teamNumbers = list }
             , Cmd.none
             )
+                |> andThen update NewTeams
+                |> andThen update NewSchedule
 
         NewSchedule ->
             ( model
@@ -184,6 +188,7 @@ update msg model =
             ( { model | schedule = scheduled }
             , Cmd.none
             )
+                |> andThen update NewResults
 
         NewTeams ->
             --extraneous, but useful to be explicit
@@ -196,6 +201,7 @@ update msg model =
             ( { model | teams = teamsMade }
             , Cmd.none
             )
+                |> andThen update NewResults
 
         NewResults ->
             ( model
@@ -345,10 +351,16 @@ viewTeam team =
         ]
 
 
-viewAlliance : List Team -> Element Msg
-viewAlliance alliance =
+
+--eh colors look a tad weird with background, I'll fix later
+
+
+viewAlliance : List Team -> Color -> Element Msg
+viewAlliance alliance color =
     Element.column
-        []
+        [ Background.color color
+        , spacing 1
+        ]
         (List.map
             viewTeam
             alliance
@@ -360,9 +372,9 @@ viewMatchBreakdown m_result =
     case m_result of
         Just result ->
             Element.column
-                []
-                [ viewAlliance result.red
-                , viewAlliance result.blue
+                [ spacing 10 ]
+                [ viewAlliance result.red (rgb255 255 238 238)
+                , viewAlliance result.blue (rgb255 238 238 255)
                 , Element.row [] (List.map (\n -> text (String.fromInt n)) (Set.toList result.surrogates))
                 ]
 
