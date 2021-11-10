@@ -27,11 +27,15 @@ import Url.Parser exposing ((</>), Parser, int, map, oneOf, s, string)
 
 
 
+--BUG WITH ODD NUMBER OF TEAMS, NEED TO GO BACK THROUGH AND fix the surrogate stuff
+--also at low team numbers is a problem, gaps occur
+--teams can also play themselves which is problematics
+------------------------------------
 --SPEC for first release
 --Attribute generator knobs
 --variable sample size knobs(team number, match number)
 --simple rule import(all double)
---breakdowns on separate redirect(or some other clever UI solution)
+--DONE:breakdowns on separate redirect(or some other clever UI solution)
 --Some type of analysis(rank or something else)
 --Some kind of result export
 ------------------------
@@ -116,7 +120,7 @@ main =
 
 
 type alias Model =
-    { page : Int
+    { numTeams : Int
     , teamNumbers : Set Int --maybe come up with an eventual bounding type
     , schedule : List Match
     , results : List MatchResult
@@ -130,9 +134,10 @@ type alias Model =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( Model 0 Set.empty [] [] Dict.empty palmettoDist infRechargeRules key url
+    ( Model 30 Set.empty [] [] Dict.empty palmettoDist infRechargeRules key url
     , Cmd.none
     )
+        |> andThen update NewList
 
 
 
@@ -150,6 +155,7 @@ type Msg
     | MakeResults (List MatchResult)
     | LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
+    | UpdateMatchNum Float
 
 
 randomTeamNumber : Generator Int
@@ -167,7 +173,7 @@ update msg model =
     case msg of
         NewList ->
             ( model
-            , generate MakeList (generateTeamNumbers 30)
+            , generate MakeList (generateTeamNumbers model.numTeams)
               --current numbers are perfect so no surrogates, fix later
             )
 
@@ -225,6 +231,14 @@ update msg model =
             ( { model | url = url }
             , Cmd.none
             )
+
+        UpdateMatchNum newNum ->
+            ( { model
+                | numTeams = floor newNum
+              }
+            , Cmd.none
+            )
+                |> andThen update NewList
 
 
 
@@ -367,6 +381,10 @@ viewAlliance alliance color =
         )
 
 
+
+--can create some extra little boxes explaining overall alliance stuff
+
+
 viewMatchBreakdown : Maybe MatchResult -> Element Msg
 viewMatchBreakdown m_result =
     case m_result of
@@ -432,6 +450,41 @@ viewTeamMaker model =
 
 
 
+--I'm making these like components, which may be bad
+--can come up with a more rolling style later
+
+
+viewNumTeamsSelector : Model -> Element Msg
+viewNumTeamsSelector model =
+    Input.slider
+        [ Element.height (Element.px 30)
+
+        -- Here is where we're creating/styling the "track", need to fix the following
+        , Element.behindContent
+            (Element.el
+                [ Element.width Element.fill
+                , Element.height (Element.px 2)
+                , Element.centerY
+                , Background.color (rgb255 128 128 128)
+                , Border.rounded 2
+                ]
+                Element.none
+            )
+        ]
+        { onChange = UpdateMatchNum
+        , label =
+            Input.labelAbove []
+                (text "Number of Teams")
+        , min = 0
+        , max = 75
+        , step = Just 6
+        , value = toFloat model.numTeams
+        , thumb =
+            Input.defaultThumb
+        }
+
+
+
 --I know this is not the best organization for this, but will fix a bit later
 
 
@@ -475,7 +528,8 @@ view model =
                      <|
                         Element.column
                             []
-                            [ Element.wrappedRow
+                            [ viewNumTeamsSelector model
+                            , Element.wrappedRow
                                 [ spacing 20
                                 , alignTop
                                 ]
