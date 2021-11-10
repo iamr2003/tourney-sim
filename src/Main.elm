@@ -454,21 +454,31 @@ viewTeamMaker model =
 --can come up with a more rolling style later
 
 
+customThumb : Int -> Input.Thumb
+customThumb number =
+    Input.thumb (Element.text (String.fromInt number))
+
+
 viewNumTeamsSelector : Model -> Element Msg
 viewNumTeamsSelector model =
     Input.slider
         [ Element.height (Element.px 30)
+        , Element.width (Element.px 400)
 
         -- Here is where we're creating/styling the "track", need to fix the following
         , Element.behindContent
-            (Element.el
-                [ Element.width Element.fill
-                , Element.height (Element.px 2)
-                , Element.centerY
-                , Background.color (rgb255 128 128 128)
-                , Border.rounded 2
+            (Element.row [ Element.width Element.fill, Element.centerY ]
+                [ Element.text (String.fromInt 0)
+                , Element.el
+                    [ Element.width Element.fill
+                    , Element.height (Element.px 2)
+                    , Element.centerY
+                    , Background.color (rgb255 128 128 128)
+                    , Border.rounded 2
+                    ]
+                    Element.none
+                , Element.text (String.fromInt 75)
                 ]
-                Element.none
             )
         ]
         { onChange = UpdateMatchNum
