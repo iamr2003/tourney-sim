@@ -3,6 +3,7 @@ module Main exposing (..)
 import Array exposing (Array, fromList)
 import Browser
 import Browser.Navigation as Nav
+import Design exposing (..)
 import Dict exposing (Dict, empty, fromList, keys, map, values)
 import Element exposing (..)
 import Element.Background as Background
@@ -14,6 +15,7 @@ import Html exposing (Html)
 import Html.Events exposing (onClick)
 import List exposing (foldr, map, take)
 import MatchScheduler exposing (..)
+import Msg exposing (..)
 import Random exposing (Generator, float, generate, pair)
 import Random.Set exposing (set)
 import Round exposing (round)
@@ -142,20 +144,6 @@ init flags url key =
 
 
 -- UPDATE
-
-
-type Msg
-    = NewList
-    | MakeList (Set Int)
-    | NewSchedule
-    | MakeSchedule (List Match)
-    | NewTeams
-    | MakeTeams (Dict Int Team)
-    | NewResults
-    | MakeResults (List MatchResult)
-    | LinkClicked Browser.UrlRequest
-    | UrlChanged Url.Url
-    | UpdateMatchNum Float
 
 
 randomTeamNumber : Generator Int
@@ -454,47 +442,48 @@ viewTeamMaker model =
 --can come up with a more rolling style later
 
 
-customThumb : Int -> Input.Thumb
-customThumb number =
-    Input.thumb (Element.text (String.fromInt number))
-
-
 viewNumTeamsSelector : Model -> Element Msg
 viewNumTeamsSelector model =
-    Input.slider
-        [ Element.height (Element.px 30)
-        , Element.width (Element.px 400)
-
-        -- Here is where we're creating/styling the "track", need to fix the following
-        , Element.behindContent
-            (Element.row [ Element.width Element.fill, Element.centerY ]
-                [ Element.text (String.fromInt 0)
-                , Element.el
-                    [ Element.width Element.fill
-                    , Element.height (Element.px 2)
-                    , Element.centerY
-                    , Background.color (rgb255 128 128 128)
-                    , Border.rounded 2
-                    ]
-                    Element.none
-                , Element.text (String.fromInt 75)
-                ]
-            )
-        ]
-        { onChange = UpdateMatchNum
-        , label =
-            Input.labelAbove []
-                (text "Number of Teams")
-        , min = 0
-        , max = 75
-        , step = Just 6
-        , value = toFloat model.numTeams
-        , thumb =
-            Input.defaultThumb
-        }
+    numberSlider
+        "Number of Teams"
+        0
+        75
+        (Just 6)
+        (toFloat model.numTeams)
+        UpdateMatchNum
 
 
 
+--Input.slider
+--    [ Element.height (Element.px 30)
+--    , Element.width (Element.px 400)
+--    -- Here is where we're creating/styling the "track", need to fix the following
+--    , Element.behindContent
+--        (Element.row [ Element.width Element.fill, Element.centerY ]
+--            [ Element.text (String.fromInt 0)
+--            , Element.el
+--                [ Element.width Element.fill
+--                , Element.height (Element.px 2)
+--                , Element.centerY
+--                , Background.color (rgb255 128 128 128)
+--                , Border.rounded 2
+--                ]
+--                Element.none
+--            , Element.text (String.fromInt 75)
+--            ]
+--        )
+--    ]
+--    { onChange = UpdateMatchNum
+--    , label =
+--        Input.labelAbove []
+--            (text "Number of Teams")
+--    , min = 0
+--    , max = 75
+--    , step = Just 6
+--    , value = toFloat model.numTeams
+--    , thumb =
+--        numberThumb model.numTeams
+--    }
 --I know this is not the best organization for this, but will fix a bit later
 
 
