@@ -15,11 +15,10 @@ import Utils exposing (split)
 --FIX MORE TYPE STUFF
 --implement everything with float for now, in reality bools and ints would be allowed
 --we can use this fancy type overloading to keep states encoded
+--min max pair, useful to bundle in pair for generation
 
 
-type
-    TeamAttribute
-    --min max pair, useful to bundle in pair for generation
+type TeamAttribute
     = AttributeRange ( Float, Float )
     | AttributeValue Float --this might not be helpful here
 

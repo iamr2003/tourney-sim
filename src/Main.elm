@@ -29,6 +29,7 @@ import Url.Parser exposing ((</>), Parser, int, map, oneOf, s, string)
 
 
 
+--next step is reform match number stuff/ make a generalized slider system for input vars
 --BUG WITH ODD NUMBER OF TEAMS, NEED TO GO BACK THROUGH AND fix the surrogate stuff
 --also at low team numbers is a problem, gaps occur
 --teams can also play themselves which is problematics
@@ -451,40 +452,6 @@ viewNumTeamsSelector model =
         (Just 6)
         (toFloat model.numTeams)
         UpdateMatchNum
-
-
-
---Input.slider
---    [ Element.height (Element.px 30)
---    , Element.width (Element.px 400)
---    -- Here is where we're creating/styling the "track", need to fix the following
---    , Element.behindContent
---        (Element.row [ Element.width Element.fill, Element.centerY ]
---            [ Element.text (String.fromInt 0)
---            , Element.el
---                [ Element.width Element.fill
---                , Element.height (Element.px 2)
---                , Element.centerY
---                , Background.color (rgb255 128 128 128)
---                , Border.rounded 2
---                ]
---                Element.none
---            , Element.text (String.fromInt 75)
---            ]
---        )
---    ]
---    { onChange = UpdateMatchNum
---    , label =
---        Input.labelAbove []
---            (text "Number of Teams")
---    , min = 0
---    , max = 75
---    , step = Just 6
---    , value = toFloat model.numTeams
---    , thumb =
---        numberThumb model.numTeams
---    }
---I know this is not the best organization for this, but will fix a bit later
 
 
 type View_Mode

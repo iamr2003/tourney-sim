@@ -29,13 +29,14 @@ numberThumb number =
         ]
 
 
+
+--make one with editable ends next
+
+
 numberSlider : String -> Float -> Float -> Maybe Float -> Float -> (Float -> Msg) -> Element Msg
 numberSlider label min_ max_ step_ val cmd =
     Input.slider
         [ Element.height (Element.px 30)
-
-        --, Element.width (Element.px 400)
-        -- Here is where we're creating/styling the "track", need to fix the following
         , Element.behindContent
             (Element.row [ Element.width Element.fill, Element.centerY ]
                 [ Element.text (String.fromFloat min_)
@@ -65,4 +66,34 @@ numberSlider label min_ max_ step_ val cmd =
 
 
 
+--maxMinAveSlider : String -> Float -> Float -> Maybe Float -> Float -> (Float -> Msg) -> Element Msg
+--maxMinAveSlider label min_ max_ step_ val cmd =
+--    Input.slider
+--        [ Element.height (Element.px 30)
+--        , Element.behindContent
+--            (Element.row [ Element.width Element.fill, Element.centerY ]
+--                [ Element.text (String.fromFloat min_)
+--                , Element.el
+--                    [ Element.width Element.fill
+--                    , Element.height (Element.px 2)
+--                    , Element.centerY
+--                    , Background.color (rgb255 128 128 128)
+--                    , Border.rounded 2
+--                    ]
+--                    Element.none
+--                , Element.text (String.fromFloat max_)
+--                ]
+--            )
+--        ]
+--        { onChange = cmd
+--        , label =
+--            Input.labelAbove [ Element.centerX ]
+--                (text label)
+--        , min = min_
+--        , max = max_
+--        , step = step_
+--        , value = val
+--        , thumb =
+--            numberThumb (floor val)
+--        }
 --eventually move more stuff here, like the slider implem, etc.
