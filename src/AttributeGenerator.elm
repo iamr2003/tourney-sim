@@ -1,15 +1,17 @@
 module AttributeGenerator exposing (..)
 
 import Browser
+import Design exposing (..)
 import Dict exposing (..)
+import Element exposing (..)
 import Random exposing (Generator)
 import Team exposing (..)
 
 
 type alias DistFactors =
-    { max : Int
-    , min : Int
-    , mean : Int
+    { max : Float
+    , min : Float
+    , mean : Float
     }
 
 
@@ -18,10 +20,25 @@ type alias Model =
     }
 
 
+rulesToFactors : Dict String Float -> Dict String DistFactors
+rulesToFactors rules =
+    Dict.map
+        (\k v ->
+            --arbitrary set up heuristic, could be adjusted to better defaults
+            DistFactors 0 (5 * v) (10 * v)
+        )
+        rules
+
+
 type Msg
     = UpdateMax String Float
     | UpdateMin String Float
     | UpdateMean String Float
+
+
+init : Dict String Float -> Model
+init rules =
+    Model (rulesToFactors rules)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -38,11 +55,11 @@ update msg model =
                                 { factors | max = val }
                                 model.uiState
                       }
-                    , Cmd.None
+                    , Cmd.none
                     )
 
                 Nothing ->
-                    ( model, Cmd.None )
+                    ( model, Cmd.none )
 
         UpdateMin attr val ->
             case get attr model.uiState of
@@ -54,11 +71,11 @@ update msg model =
                                 { factors | min = val }
                                 model.uiState
                       }
-                    , Cmd.None
+                    , Cmd.none
                     )
 
                 Nothing ->
-                    ( model, Cmd.None )
+                    ( model, Cmd.none )
 
         UpdateMean attr val ->
             case get attr model.uiState of
@@ -70,18 +87,27 @@ update msg model =
                                 { factors | mean = val }
                                 model.uiState
                       }
-                    , Cmd.None
+                    , Cmd.none
                     )
 
                 Nothing ->
-                    ( model, Cmd.None )
+                    ( model, Cmd.none )
+
 
 view : Model -> Element Msg
 view model =
-    map
-        (\k v ->
-            --slider for every factor
-
+    Element.row
+        []
+        (Dict.values
+            (Dict.map
+                (\k v ->
+                    --slider for every factor
+                    numberSlider k v.min v.max (Just 1) v.mean (UpdateMean k)
+                )
+                model.uiState
             )
+        )
+
+
 
 --make generator thigns

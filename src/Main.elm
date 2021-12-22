@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Array exposing (Array, fromList)
+import AttributeGenerator exposing (..)
 import Browser
 import Browser.Navigation as Nav
 import Design exposing (..)
@@ -15,7 +16,6 @@ import Html exposing (Html)
 import Html.Events exposing (onClick)
 import List exposing (foldr, map, take)
 import MatchScheduler exposing (..)
-import Msg exposing (..)
 import Random exposing (Generator, float, generate, pair)
 import Random.Set exposing (set)
 import Round exposing (round)
@@ -119,6 +119,7 @@ main =
 
 
 
+--need to fix up typing and such a lot
 -- MODEL
 
 
@@ -132,12 +133,38 @@ type alias Model =
     , rules : Dict String Float
     , key : Nav.Key
     , url : Url.Url
+    , attrGenerator : AttributeGenerator.Model
     }
+
+
+type Msg
+    = NewList
+    | MakeList (Set Int)
+    | NewSchedule
+    | MakeSchedule (List Match)
+    | NewTeams
+    | MakeTeams (Dict Int Team)
+    | NewResults
+    | MakeResults (List MatchResult)
+    | LinkClicked Browser.UrlRequest
+    | UrlChanged Url.Url
+    | UpdateMatchNum Float
+    | GotAttrGeneratorMsg AttributeGenerator.Msg
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( Model 30 Set.empty [] [] Dict.empty palmettoDist infRechargeRules key url
+    ( Model
+        30
+        Set.empty
+        []
+        []
+        Dict.empty
+        palmettoDist
+        infRechargeRules
+        key
+        url
+        (AttributeGenerator.init infRechargeRules)
     , Cmd.none
     )
         |> andThen update NewList
@@ -228,6 +255,24 @@ update msg model =
             , Cmd.none
             )
                 |> andThen update NewList
+
+        --syntax is still not the cleanest, need to work on this, not working need to retool
+        GotAttrGeneratorMsg attrGenMsg ->
+            AttributeGenerator.update
+                attrGenMsg
+                model.attrGenerator
+
+
+
+--|> updateWith attrGenerator GotAttrGeneratorMsg model
+--grabbed from elm-spa-example
+
+
+updateWith : (subModel -> Model) -> (subMsg -> Msg) -> Model -> ( subModel, Cmd subMsg ) -> ( Model, Cmd Msg )
+updateWith toModel toMsg model ( subModel, subCmd ) =
+    ( toModel subModel
+    , Cmd.map toMsg subCmd
+    )
 
 
 

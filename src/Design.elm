@@ -6,7 +6,6 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Element.Region as Region
-import Msg exposing (Msg)
 
 
 numberThumb : Int -> Input.Thumb
@@ -33,7 +32,7 @@ numberThumb number =
 --make one with editable ends next
 
 
-numberSlider : String -> Float -> Float -> Maybe Float -> Float -> (Float -> Msg) -> Element Msg
+numberSlider : String -> Float -> Float -> Maybe Float -> Float -> (Float -> msg) -> Element msg
 numberSlider label min_ max_ step_ val cmd =
     Input.slider
         [ Element.height (Element.px 30)
